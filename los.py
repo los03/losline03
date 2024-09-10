@@ -1,140 +1,62 @@
-import subprocess
-import sys
+from instagrapi import Client
+import os
+from bs4 import BeautifulSoup
+import requests
 
-def install(package):
-    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-
-def install_requirements():
-    packages = ['Faker', 'requests']
-    for package in packages:
-        install(package)
-
-def main():
-    from faker import Faker
-    import requests
-    import time
-
-    # Türkçe yerel ayarı ile Faker nesnesini oluştur
-    fake = Faker('tr_TR')
-
-    # API URL'leri
-    register_url = 'https://api.cizgi.studio/v1/auth/register'
-    like_url = 'https://api.cizgi.studio/v1/likes/66a95355cc844f002f9ca9ae'
-    rating_url = 'https://api.cizgi.studio/v1/ratings/66a95355cc844f002f9ca9ae'
-    follow_url = 'https://api.cizgi.studio/v1/follows/66a950ad7251fe006946fc24/follow'
-    episodes_url = 'https://api.cizgi.studio/v1/works/66a95355cc844f002f9ca9ae/episodes'
-    reading_activities_url = 'https://api.cizgi.studio/v1/reading-activities'
-
-    # Döngü sayısını başlat
-    loop_count = 0
-
-    while True:
-        loop_count += 1
-
-        # Rastgele veri oluştur
-        data = {
-            'email': fake.email(),
-            'password': fake.password(length=12, special_chars=True, digits=True, upper_case=True, lower_case=True),
-            'fullname': fake.name(),
-            'username': fake.user_name()
-        }
-
-        # Kayıt POST isteği gönder
-        response = requests.post(register_url, json=data)
-        response_json = response.json()
-
-        # Yanıtın anahtarlarını değişkenlere atama
-        tokens = response_json.get('tokens', {})
+def rastgele_siir():
+    # Fetch a random poem from the website
+    try:
+        r = requests.get("https://www.antoloji.com/siir/rastgele/")
+        r.raise_for_status()  # Ensure we notice bad responses
+        soup = BeautifulSoup(r.content, "html.parser")
+        siir_baslik = soup.find("div", attrs={"class": "pd-title"})
+        siir_icerik = soup.find("div", attrs={"class": "pd-text"})
         
-        # Token bilgileri
-        access_token = tokens.get('access', {}).get('token')
-        refresh_token = tokens.get('refresh', {}).get('token')
+        if not siir_baslik or not siir_icerik:
+            return "Şiir bulunamadı."
+        
+        baslik = siir_baslik.find("h3").get_text() if siir_baslik.find("h3") else "Başlık yok"
+        siir = " ".join(p.get_text() for p in siir_icerik.find_all("p"))
+        
+        # Format the caption with title and poem
+        caption = f"{baslik}\n\n{siir}"
+        return caption
+    except Exception as e:
+        return f"Error fetching poem: {e}"
 
-        # Token'ları ekrana yazdırma
-        print(f"Loop Count: {loop_count}")
-        print(f"Access Token: {access_token}")
-        print(f"Refresh Token: {refresh_token}")
+def post_on_instagram():
+    username = "canvastalesai"
+    password = "ASDdsa03."
+    photo_dir = "/content/io/output"  # Directory containing photos
 
-        if access_token:
-            # Başlıklar (Headers)
-            headers = {
-                'Host': 'api.cizgi.studio',
-                'Sec-Ch-Ua': '"Not/A)Brand";v="8", "Chromium";v="126"',
-                'Accept-Language': 'tr-TR',
-                'Sec-Ch-Ua-Mobile': '?0',
-                'Authorization': f'Bearer {access_token}',  # Token'ı başlıkta kullan
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.6478.127 Safari/537.36',
-                'Content-Type': 'application/json',
-                'Accept': 'application/json, text/plain, */*',
-                'Sec-Ch-Ua-Platform': '"Windows"',
-                'Origin': 'https://cizgi.studio',
-                'Sec-Fetch-Site': 'same-site',
-                'Sec-Fetch-Mode': 'cors',
-                'Sec-Fetch-Dest': 'empty',
-                'Referer': 'https://cizgi.studio/',
-                'Priority': 'u=1, i',
-            }
+    # Initialize the Instagram client
+    client = Client()
 
-            # "Beğen" POST isteği gönder
-            like_response = requests.post(like_url, headers=headers, verify=False)
-            print(f"Status Code (Like): {like_response.status_code}")
-            print(f"Response Body (Like): {like_response.text}")
+    try:
+        # Login to Instagram
+        client.login(username, password)
+        
+        # List all files in the photo directory
+        files = [f for f in os.listdir(photo_dir) if os.path.isfile(os.path.join(photo_dir, f))]
+        
+        # Post each photo, limit to 5 photos
+        max_posts = 5
+        for i, file in enumerate(files):
+            if i >= max_posts:
+                break
+            photo_path = os.path.join(photo_dir, file)
+            # Get a random poem for the caption
+            hashtags = '#şiir #aşk #şiirsokakta #edebiyat #istanbul #kitap #şiirheryerde #söz #siirsokakta #sevgi #şair #güzelsözler #izmir #ankara #sözler #iyigeceler #instagram #siir #cemalsüreya #love #yazar #türkiye #tbt #müzik #huzur #günaydın #mutluluk #instagood #turkey #ask'
+            
+            # Generate caption with hashtags
+            caption = f"{rastgele_siir()}\n\n{hashtags}"
+            
+            # Upload the photo
+            media = client.photo_upload(photo_path, caption=caption)
+            print(f"Photo uploaded successfully! Media ID: {media.id}")
 
-            # Derecelendirme POST isteği gönder
-            json_data = {'rating': 5}
-            rating_response = requests.post(rating_url, headers=headers, json=json_data, verify=False)
-            print(f"Status Code (Rating): {rating_response.status_code}")
-            print(f"Response Body (Rating): {rating_response.text}")
-
-            # Takip POST isteği gönder
-            follow_response = requests.post(follow_url, headers=headers, verify=False)
-            print(f"Status Code (Follow): {follow_response.status_code}")
-            print(f"Response Body (Follow): {follow_response.text}")
-
-            # Belirli bir URL'ye GET isteği gönder
-            get_headers = {
-                   'Host': 'api.cizgi.studio',
-                'Sec-Ch-Ua': '"Not/A)Brand";v="8", "Chromium";v="126"',
-                'Accept-Language': 'tr-TR',
-                'Sec-Ch-Ua-Mobile': '?0',
-                'Authorization': f'Bearer {access_token}',  # Token'ı başlıkta kullan
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.6478.127 Safari/537.36',
-                'Content-Type': 'application/json',
-                'Accept': 'application/json, text/plain, */*',
-                'Sec-Ch-Ua-Platform': '"Windows"',
-                'Origin': 'https://cizgi.studio',
-                'Sec-Fetch-Site': 'same-site',
-                'Sec-Fetch-Mode': 'cors',
-                'Sec-Fetch-Dest': 'empty',
-                'Referer': 'https://cizgi.studio/',
-                'Priority': 'u=1, i',
-            }
-
-            params = {
-                'work': '66a95355cc844f002f9ca9ae',
-                'limit': '10',
-                'isActive': 'true',
-            }
-
-            # GET isteği gönder
-            get_response = requests.get(episodes_url, params=params, headers=get_headers, verify=False)
-            print(f"Status Code (GET /episodes): {get_response.status_code}")
-            print(f"Response Body (GET /episodes): {get_response.text}")
-
-            # Reading Activities POST isteği gönder
-            reading_activities_data = {
-                'work': '66a95355cc844f002f9ca9ae',
-            }
-            reading_activities_response = requests.post(reading_activities_url, headers=headers, json=reading_activities_data, verify=False)
-            print(f"Status Code (Reading Activities): {reading_activities_response.status_code}")
-            print(f"Response Body (Reading Activities): {reading_activities_response.text}")
-
-        else:
-            print("Access Token alınamadı.")
-
-        # Döngü arasında bir süre bekle (örneğin 1 saniye)
-        time.sleep(1)
+    except Exception as e:
+        print(f"Error posting to Instagram: {e}")
 
 if __name__ == "__main__":
-    install_requirements()
-    main()
+    post_on_instagram()
