@@ -1,0 +1,38 @@
+from pinterest_crawler import PinterestCrawler
+import requests
+import os
+
+def download_image(image_url, save_path):
+    response = requests.get(image_url)
+    if response.status_code == 200:
+        with open(save_path, 'wb') as file:
+            file.write(response.content)
+        print(f"Image downloaded successfully: {save_path}")
+    else:
+        print("Failed to retrieve image.")
+
+def main():
+    # Initialize the Pinterest crawler
+    pinterest_crawler = PinterestCrawler()
+
+    # Perform the search with keywords
+    keywords = ['aesthetic', 'dark',"mitoloji"]
+    pins = pinterest_crawler(keywords=keywords)
+
+    # Create a directory to save images
+    save_dir = 'pinterest_images'
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    # Download images from the retrieved pins
+    for i, pin in enumerate(pins):
+        image_url = pin.get('url')  # Assuming 'url' holds the image URL
+        if image_url:
+            save_path = os.path.join(save_dir, f'image_{i+1}.jpg')
+            download_image(image_url, save_path)
+        else:
+            print(f"No image URL found for pin {i+1}.")
+
+if __name__ == "__main__":
+    main()
+
