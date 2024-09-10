@@ -1,0 +1,98 @@
+!pip install instabot requests random 
+!pip install pinterest-crawler
+!pip install instagrapi
+from pinterest_crawler import PinterestCrawler
+import requests
+import os
+import os
+import random
+import requests
+from instagrapi import Client
+
+def post_on_instagram():
+    username = "canvastalesai"
+    password = "ASDdsa03."
+    
+    # List of possible photo directories
+    photo_dirs = ["/content/io/output", "/content/io/another_output", "/content/io/yet_another_output"]
+    
+    # Select a random directory from the list
+    photo_dir = random.choice(photo_dirs)
+    
+    # Ensure the directory exists; create it if not
+    if not os.path.exists(photo_dir):
+        os.makedirs(photo_dir)
+        print(f"Created directory: {photo_dir}")
+
+    # Initialize the Instagram client
+    client = Client()
+
+    try:
+        # Login to Instagram
+        client.login(username, password)
+        
+        # List all files in the selected photo directory
+        files = [f for f in os.listdir(photo_dir) if os.path.isfile(os.path.join(photo_dir, f))]
+        
+        if not files:
+            # If directory is empty, download new images
+            pinterest_crawler = PinterestCrawler()
+            keywords = ['gotik sanat', 'aesthetic', 'tablo', "mitoloji"]
+            pins = pinterest_crawler(keywords=keywords)
+            
+            # Apply filtering to select specific pins
+            selected_pins = [pin for pin in pins if some_filter_condition(pin)]
+            
+            if not selected_pins:
+                print("No pins matched the filter condition.")
+            
+            # Download images into the selected directory
+            for i, pin in enumerate(selected_pins):
+                image_url = pin.get('url')  # Assuming 'url' holds the image URL
+                if image_url:
+                    save_path = os.path.join(photo_dir, f'image_{i+1}.jpg')
+                    download_image(image_url, save_path)
+                else:
+                    print(f"No image URL found for pin {i+1}.")
+        
+        # List files again after downloading
+        files = [f for f in os.listdir(photo_dir) if os.path.isfile(os.path.join(photo_dir, f))]
+        
+        if not files:
+            print("No images found to post.")
+            return
+        
+        # Post each photo, limit to 5 photos
+        max_posts = 5
+        for i, file in enumerate(files):
+            if i >= max_posts:
+                break
+            photo_path = os.path.join(photo_dir, file)
+            
+            # Get a random poem for the caption
+            hashtags = '#şiir #aşk #şiirsokakta #edebiyat #istanbul #kitap #şiirheryerde #söz #siirsokakta #sevgi #şair #güzelsözler #izmir #ankara #sözler #iyigeceler #instagram #siir #cemalsüreya #love #yazar #türkiye #tbt #müzik #huzur #günaydın #mutluluk #instagood #turkey #ask'
+            
+            try:
+                # Generate caption
+                poem_caption = rastgele_siir()
+                
+                if not isinstance(poem_caption, str):
+                    raise ValueError(f"Caption is not a string: {type(poem_caption)}")
+                
+                caption = f"{poem_caption} {hashtags}"
+                
+                # Upload photo to Instagram
+                media = client.photo_upload(photo_path, caption=caption)
+                print(f"Photo uploaded successfully! Media ID: {media.id}")
+                
+                # Remove the photo from the directory after posting
+                os.remove(photo_path)
+                print(f"Photo removed from directory: {photo_path}")
+            except Exception as e:
+                print(f"Error uploading photo {photo_path}: {e}")
+
+    except Exception as e:
+        print(f"Error in post_on_instagram: {e}")
+
+if __name__ == "__main__":
+    post_on_instagram()
