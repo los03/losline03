@@ -1,0 +1,149 @@
+from instagrapi import Client
+
+def post_on_instagram():
+    username = "muraates6434"
+    password = "ASDdsa03."
+    photo_path = "/content/Koala.jpg"
+    caption = "deneme"
+
+    # Initialize the client
+    client = Client()
+
+    # Login to Instagram
+    client.login(username, password)
+
+    # Post the photo 10 times
+    for i in range(10):
+        media = client.photo_upload(photo_path, caption=f"{caption} {i+1}")
+        print(f"Photo uploaded successfully! Media ID: {media.id}")
+
+if __name__ == "__main__":
+    post_on_instagram()
+
+
+from pinterest_crawler import PinterestCrawler
+import requests
+import os
+
+def download_image(image_url, save_path):
+    response = requests.get(image_url)
+    if response.status_code == 200:
+        with open(save_path, 'wb') as file:
+            file.write(response.content)
+        print(f"Image downloaded successfully: {save_path}")
+    else:
+        print("Failed to retrieve image.")
+
+def main():
+    # Initialize the Pinterest crawler
+    pinterest_crawler = PinterestCrawler()
+
+    # Perform the search with keywords
+    keywords = ['aesthetic', 'dark',"mitoloji"]
+    pins = pinterest_crawler(keywords=keywords)
+
+    # Create a directory to save images
+    save_dir = 'pinterest_images'
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    # Download images from the retrieved pins
+    for i, pin in enumerate(pins):
+        image_url = pin.get('url')  # Assuming 'url' holds the image URL
+        if image_url:
+            save_path = os.path.join(save_dir, f'image_{i+1}.jpg')
+            download_image(image_url, save_path)
+        else:
+            print(f"No image URL found for pin {i+1}.")
+
+if __name__ == "__main__":
+    main()
+
+
+from instagrapi import Client
+import os
+
+def post_on_instagram():
+    username = "muraates6434"
+    password = "ASDdsa03."
+    photo_dir = "/content/io/output"  # Directory containing photos
+    caption = "art"
+
+    # Initialize the client
+    client = Client()
+
+    # Login to Instagram
+    client.login(username, password)
+
+    # List all files in the photo directory
+    files = [f for f in os.listdir(photo_dir) if os.path.isfile(os.path.join(photo_dir, f))]
+
+    # Post each photo
+    for file in files:
+        photo_path = os.path.join(photo_dir, file)
+        media = client.photo_upload(photo_path, caption=caption)
+        print(f"Photo uploaded successfully! Media ID: {media.id}")
+
+if __name__ == "__main__":
+    post_on_instagram()
+
+
+
+
+from instagrapi import Client
+import os
+from bs4 import BeautifulSoup
+import requests
+
+def rastgele_siir():
+    # Fetch a random poem from the website
+    try:
+        r = requests.get("https://www.antoloji.com/siir/rastgele/")
+        r.raise_for_status()  # Ensure we notice bad responses
+        soup = BeautifulSoup(r.content, "html.parser")
+        siir_baslik = soup.find("div", attrs={"class": "pd-title"})
+        siir_icerik = soup.find("div", attrs={"class": "pd-text"})
+        
+        if not siir_baslik or not siir_icerik:
+            return "Þiir bulunamadý."
+        
+        baslik = siir_baslik.find("h3").get_text() if siir_baslik.find("h3") else "Baþlýk yok"
+        siir = " ".join(p.get_text() for p in siir_icerik.find_all("p"))
+        
+        # Format the caption with title and poem
+        caption = f"{baslik}\n\n{siir}"
+        return caption
+    except Exception as e:
+        return f"Error fetching poem: {e}"
+
+def post_on_instagram():
+    username = "muraates6434"
+    password = "ASDdsa03."
+    photo_dir = "/content/io/output"  # Directory containing photos
+
+    # Initialize the Instagram client
+    client = Client()
+
+    try:
+        # Login to Instagram
+        client.login(username, password)
+        
+        # List all files in the photo directory
+        files = [f for f in os.listdir(photo_dir) if os.path.isfile(os.path.join(photo_dir, f))]
+        
+        # Post each photo, limit to 5 photos
+        max_posts = 5
+        for i, file in enumerate(files):
+            if i >= max_posts:
+                break
+            photo_path = os.path.join(photo_dir, file)
+            # Get a random poem for the caption
+            caption = rastgele_siir()
+            media = client.photo_upload(photo_path, caption=caption)
+            print(f"Photo uploaded successfully! Media ID: {media.id}")
+
+    except Exception as e:
+        print(f"Error posting to Instagram: {e}")
+
+if __name__ == "__main__":
+    post_on_instagram()
